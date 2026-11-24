@@ -22,7 +22,7 @@ export interface LiveEvents {
 }
 
 export interface Live {
-  sendNote(text: string): boolean;
+  sendNote(text: string, elementId?: string): boolean;
   /** Saves the board, including edits not sent yet, to the library. */
   save(name: string): Promise<SavedSummary>;
   /** Saves the user's viewer settings for every viewer; false when offline. */
@@ -211,7 +211,14 @@ export function startLive(api: ExcalidrawImperativeAPI, wsUrls: string[], ev: Li
   window.addEventListener('online', onOnline);
 
   return {
-    sendNote: (text) => conn.send({ t: 'note', text }),
+    sendNote(text, elementId) {
+      if (elementId) {
+        if (!synced) return false;
+        // The daemon needs the latest element and its label before recording the comment.
+        throttle.flush();
+      }
+      return conn.send({ t: 'note', text, ...(elementId ? { elementId } : {}) });
+    },
     setPrefs: (prefs) => conn.send({ t: 'prefs', prefs }),
     save(name) {
       if (pendingSave) return Promise.reject(new Error('already saving'));

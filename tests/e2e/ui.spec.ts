@@ -61,7 +61,7 @@ test('follow mode brings far-away agent drawings into view; it can be turned off
 
   await post('home', 0);
   await openViewer(page, canvasId);
-  const follow = page.locator('.xl-btn[aria-pressed]');
+  const follow = page.getByTestId('status-pill').locator('button[aria-pressed]');
   await expect(follow).toHaveAttribute('aria-pressed', 'true');
 
   await post('east', 6000);
@@ -79,5 +79,5 @@ test('follow mode brings far-away agent drawings into view; it can be turned off
 
   await page.reload();
   await expect(page.locator('.xl-status')).toHaveText('live');
-  await expect(page.locator('.xl-btn[aria-pressed]')).toHaveAttribute('aria-pressed', 'false');
+  await expect(follow).toHaveAttribute('aria-pressed', 'false');
 });

@@ -74,6 +74,7 @@ interface Canvas {
 }
 
 export const MAX_NOTE_LENGTH = 4000;
+const MAX_NOTE_LABEL_LENGTH = 200;
 const MAX_META_LENGTH = 4096;
 
 /** Only string workspace/chat fields, omitted when absent. */
@@ -88,6 +89,19 @@ const MAX_ID_LENGTH = 128;
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= MAX_ID_LENGTH;
+
+function noteTarget(elements: ReadonlyMap<string, ExElement>, id: string): NonNullable<CanvasNote['target']> {
+  const element = elements.get(id);
+  // Keep the anchor even if another viewer removed the element before the note arrived.
+  if (!element) return { id };
+  const binding = Array.isArray(element.boundElements)
+    ? element.boundElements.find((ref: unknown) => isObject(ref) && ref.type === 'text' && typeof ref.id === 'string')
+    : undefined;
+  const bound = binding ? elements.get(binding.id) : undefined;
+  const text = element.type === 'text' ? element : bound?.type === 'text' && bound.containerId === id ? bound : undefined;
+  const label = [text?.originalText, text?.text, element.name].find((value): value is string => typeof value === 'string' && !!value.trim());
+  return { id, type: element.type, ...(label ? { label: label.slice(0, MAX_NOTE_LABEL_LENGTH) } : {}) };
+}
 
 function elementProblem(el: unknown): string | undefined {
   if (!isObject(el)) return 'element must be an object';
@@ -334,12 +348,14 @@ export class CanvasStore {
     return { rev: c.rev, full: false, changes, elements, notes };
   }
 
-  addNote(id: string, text: unknown): CanvasNote {
+  addNote(id: string, text: unknown, elementId?: unknown): CanvasNote {
     const c = this.get(id);
     if (typeof text !== 'string' || !text.trim()) throw new ValidationError('note text must be a non-empty string');
     const trimmed = text.trim();
     if (trimmed.length > MAX_NOTE_LENGTH) throw new ValidationError(`note text exceeds ${MAX_NOTE_LENGTH} characters`);
-    const note: CanvasNote = { id: randomUUID(), text: trimmed, at: this.now(), rev: ++c.rev };
+    if (elementId !== undefined && !isId(elementId)) throw new ValidationError('note elementId must be a valid element id');
+    const target = elementId === undefined ? undefined : noteTarget(c.elements, elementId);
+    const note: CanvasNote = { id: randomUUID(), text: trimmed, at: this.now(), rev: ++c.rev, ...(target ? { target } : {}) };
     c.notes.push(note);
     if (c.notes.length > this.maxNotes) c.notes.splice(0, c.notes.length - this.maxNotes);
     this.markDirty(c);

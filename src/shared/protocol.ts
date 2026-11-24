@@ -33,6 +33,8 @@ export interface CanvasNote {
   text: string;
   at: number;
   rev: number;
+  /** The element as it was when the note was sent. Omitted for board-wide notes. */
+  target?: { id: string; type?: string; label?: string };
 }
 
 /** Who a board belongs to: the workspace folder ("space") and the chat that created it. */
@@ -173,7 +175,7 @@ export type ServerMessage =
 export type ClientMessage =
   | { t: 'elements'; elements: ExElement[]; files?: BinaryFile[]; actor?: Actor }
   | { t: 'response'; reqId: string; ok: boolean; result?: unknown; error?: string }
-  | { t: 'note'; text: string }
+  | { t: 'note'; text: string; elementId?: string }
   /** Saves the board to the library; the name defaults to the board's title. */
   | { t: 'save'; name?: string }
   | { t: 'visible'; visible: boolean }

@@ -2,6 +2,7 @@ import { Excalidraw, Footer, MainMenu, WelcomeScreen, useDevice } from '@excalid
 import type { ExcalidrawImperativeAPI, UIOptions } from '@excalidraw/excalidraw/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ThemeChoice } from '../../src/shared/protocol';
+import { Comments, CommentToggle } from './Comments';
 import { readConfig, storage, type ThemePreference } from './config';
 import type { LinkStatus } from './connection';
 import { createFollower } from './follow';
@@ -46,6 +47,10 @@ export function App() {
   const [follow, setFollow] = useState(() => storage.get(FOLLOW_KEY) !== '0');
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
+  const [commentMode, setCommentMode] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const toggleCommentMode = useCallback(() => setCommentMode((on) => !on), []);
+  const sendNote = useCallback((text: string, elementId?: string) => live.current?.sendNote(text, elementId) ?? false, []);
   const closeSave = useCallback(() => setSaving(false), []);
   const live = useRef<Live | null>(null);
   const themeRef = useRef(theme);
@@ -133,8 +138,9 @@ export function App() {
       status={status}
       viewers={viewers}
       follow={follow}
+      commentMode={commentMode}
       onToggleFollow={toggleFollow}
-      onNote={(text) => live.current?.sendNote(text) ?? false}
+      onNote={sendNote}
     />
   ) : (
     <div className="xl-pill xl-pill--error" role="status">
@@ -143,8 +149,12 @@ export function App() {
   );
 
   return (
-    <div className="xl-root">
-      <Excalidraw excalidrawAPI={setApi} theme={theme} name={config.canvasId || 'canvas'} UIOptions={UI_OPTIONS} aiEnabled={false}>
+    <div className="xl-root" ref={root}>
+      <Excalidraw
+        excalidrawAPI={setApi} theme={theme} name={config.canvasId || 'canvas'} UIOptions={UI_OPTIONS} aiEnabled={false}
+        viewModeEnabled={config.canvasId ? commentMode : undefined}
+        renderTopRightUI={() => config.canvasId ? <CommentToggle active={commentMode} onToggle={toggleCommentMode} /> : null}
+      >
         <MainMenu>
           {config.canvasId && (
             <MainMenu.Item icon={<Icon d={SAVE_ICON} size={16} />} shortcut={SAVE_SHORTCUT} onSelect={() => setSaving(true)} data-testid="save-to-library">
@@ -169,6 +179,7 @@ export function App() {
           {pill}
           {saving && <SaveForm initialName={title} onSave={save} onClose={closeSave} />}
         </Chrome>
+        {commentMode && api && <Comments api={api} root={root} onSend={sendNote} onToggle={toggleCommentMode} />}
       </Excalidraw>
     </div>
   );

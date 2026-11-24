@@ -403,7 +403,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'canvas_read',
-    description: 'Read the board: scene description (or JSON), then what the human changed and noted since your last read.',
+    description: 'Read the board: scene description (or JSON), then human changes and notes since your last read, including the target element for comments.',
     inputSchema: obj({
       ids: ids('Only describe these elements'),
       format: { type: 'string', enum: ['summary', 'json'], description: 'summary (default) or json' },
@@ -424,7 +424,7 @@ export const TOOLS: Tool[] = [
         `Board ${boardName(ref)} rev ${ch.rev}, ${plural(snap.viewers, 'viewer')}.`,
         scene,
         human ? `Human changes since your last read:\n${human}` : 'No human changes since your last read.',
-        notes.length > 0 && `Notes from the human:\n${notes.map((n) => `- ${n.text}`).join('\n')}`,
+        notes.length > 0 && `Notes from the human:\n${notes.map((n) => `- ${n.target ? `[element ${JSON.stringify(n.target)}] ` : ''}${n.text}`).join('\n')}`,
       );
     },
   },

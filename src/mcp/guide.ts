@@ -7,7 +7,7 @@ export const GUIDE = `# Explaining on the live canvas
 2. Draw in steps: one canvas_draw per idea (components, then flow, then notes), each followed by a sentence or two in chat that points at the canvas ("the blue boxes are services"). Keep chat short; the canvas carries the detail.
 3. canvas_focus {ids, highlight:true} to point at what you are talking about.
 4. canvas_screenshot once after the main layout to check overlaps and cut-off text.
-5. When the human says they drew or wrote something, canvas_read lists their changes and notes.
+5. canvas_read lists human changes and notes, with element ids for comments.
 6. Each chat has its own board. canvas_open lists this workspace's other boards; {board:"<title>"} opens one (any folder), {board:"own"} goes back.
 
 ## Elements

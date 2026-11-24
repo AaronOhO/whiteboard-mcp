@@ -208,6 +208,16 @@ describe('MCP server over stdio (SDK client)', () => {
     expect(again.text).not.toContain('please add a cache');
   });
 
+  it('reports the original target of an element comment after that element is removed', async () => {
+    await call(client, 'canvas_draw', { elements: [{ id: 'comment-target', type: 'diamond', label: 'Approved?' }] });
+    await rest(`/api/canvases/${canvasId}/notes`, { text: 'Clarify this decision', elementId: 'comment-target' });
+    await call(client, 'canvas_delete', { ids: ['comment-target'] });
+
+    const read = await call(client, 'canvas_read', { format: 'json' });
+    expect(read.text).toContain('- [element {"id":"comment-target","type":"diamond","label":"Approved?"}] Clarify this decision');
+    expect((await call(client, 'canvas_read')).text).not.toContain('Clarify this decision');
+  });
+
   it('exports inside the workspace and refuses paths outside the allowed roots', async () => {
     const ok = await call(client, 'canvas_export', { path: 'out/board' });
     expect(ok.result.isError).toBeFalsy();

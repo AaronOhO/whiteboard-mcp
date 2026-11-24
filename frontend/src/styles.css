@@ -119,6 +119,39 @@ html[data-theme='dark'] {
   outline-offset: 1px;
 }
 
+.xl-btn.xl-comment-toggle {
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-primary-color);
+  background: var(--island-bg-color);
+  box-shadow: var(--shadow-island);
+}
+.xl-btn.xl-comment-toggle:hover,
+.xl-btn.xl-comment-toggle[aria-pressed='true'] {
+  color: var(--color-primary);
+  background: var(--color-surface-primary-container);
+}
+.xl-comment-toggle--mobile {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+}
+.xl-comment-popup {
+  position: fixed;
+  z-index: 10;
+  color: var(--text-primary-color);
+  font: 13px var(--ui-font, system-ui, sans-serif);
+}
+.xl-comment-menu {
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--island-bg-color);
+  box-shadow: var(--shadow-island);
+}
+
 .xl-note {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -135,6 +168,10 @@ html[data-theme='dark'] {
 .xl-chrome--mobile .xl-note {
   left: auto;
   right: 0;
+  transform: none;
+}
+.xl-note.xl-comment-form {
+  position: static;
   transform: none;
 }
 .xl-save {

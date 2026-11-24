@@ -113,3 +113,59 @@ test('a note typed in the viewer reaches the agent', async ({ page, rest, canvas
     .toContain('Please make the database box bigger');
   await expect(page.locator('.xl-status')).toHaveText('live', { timeout: 5000 });
 });
+
+test('comment mode selects a node without editing it and sends its identity with the comment', async ({ page, rest, canvasId }) => {
+  await seed(rest, canvasId, [box('account', 0, 'Account'), box('verify', 350, 'Verify')]);
+  await openViewer(page, canvasId);
+  await expect.poll(async () => (await sceneElements(page)).length).toBe(4);
+  const board = await rest.get(api.canvas(canvasId));
+
+  const mode = page.getByRole('button', { name: 'Comment mode' });
+  await mode.click();
+  await expect(mode).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTitle('Note to agent')).toHaveCount(0);
+  const target = await toViewport(page, 450, 40);
+  await page.mouse.click(target.x, target.y);
+  await expect.poll(() => page.evaluate(() => window.__excalidrawAPI.getAppState().selectedElementIds)).toEqual({ verify: true });
+  await expect(page.locator('.selected-shape-actions')).toHaveCount(0);
+  await page.keyboard.press('Delete');
+
+  await page.mouse.click(target.x, target.y, { button: 'right' });
+  const menu = page.getByRole('menu', { name: 'Element actions' });
+  await expect(menu.getByRole('menuitem')).toHaveText(['Comment']);
+  await menu.getByRole('menuitem', { name: 'Comment' }).click();
+  const field = page.getByRole('textbox', { name: 'Comment on element' });
+  await field.fill('What happens if verification times out?');
+  await field.press('Control+Enter');
+  await expect(field).toHaveCount(0);
+
+  await expect.poll(async () => (await rest.get(api.changes(canvasId, board.rev))).notes).toMatchObject([{
+    text: 'What happens if verification times out?',
+    target: { id: 'verify', type: 'rectangle', label: 'Verify' },
+  }]);
+  expect((await rest.get(api.canvas(canvasId))).elements).toEqual(board.elements);
+
+  await mode.click();
+  await expect(mode).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTitle('Note to agent')).toBeVisible();
+});
+
+test.describe('touch comment mode', () => {
+  test.use({ hasTouch: true, viewport: { width: 400, height: 760 } });
+
+  test('tapping an element opens its comment action and the mode can be exited', async ({ page, rest, canvasId }) => {
+    await seed(rest, canvasId, [box('verify', 0, 'Verify')]);
+    await openViewer(page, canvasId);
+    await expect.poll(async () => (await sceneElements(page)).length).toBe(2);
+
+    const mode = page.getByRole('button', { name: 'Comment mode' });
+    await mode.tap();
+    await expect(mode).toHaveAttribute('aria-pressed', 'true');
+    const target = await toViewport(page, 100, 40);
+    await page.touchscreen.tap(target.x, target.y);
+    await expect(page.getByRole('menuitem', { name: 'Comment' })).toBeVisible();
+    await mode.tap();
+    await expect(mode).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('menuitem', { name: 'Comment' })).toHaveCount(0);
+  });
+});

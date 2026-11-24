@@ -519,9 +519,9 @@ export async function startDaemon(opts: DaemonOptions = {}): Promise<Daemon> {
         return sendJson(res, 200, store.changes(id, since));
       }
       case 'POST notes': {
-        const { text } = await readJson(req);
+        const { text, elementId } = await readJson(req);
         requireCanvas();
-        const note = store.addNote(id, text);
+        const note = store.addNote(id, text, elementId);
         broadcast(id, { t: 'note', note });
         return sendJson(res, 200, note);
       }
@@ -640,7 +640,7 @@ export async function startDaemon(opts: DaemonOptions = {}): Promise<Daemon> {
         }
         case 'note': {
           store.ensure(viewer.canvasId);
-          broadcast(viewer.canvasId, { t: 'note', note: store.addNote(viewer.canvasId, msg.text) });
+          broadcast(viewer.canvasId, { t: 'note', note: store.addNote(viewer.canvasId, msg.text, msg.elementId) });
           return;
         }
         case 'save': {
