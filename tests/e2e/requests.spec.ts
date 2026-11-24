@@ -144,10 +144,41 @@ test('comment mode selects a node without editing it and sends its identity with
     target: { id: 'verify', type: 'rectangle', label: 'Verify' },
   }]);
   expect((await rest.get(api.canvas(canvasId))).elements).toEqual(board.elements);
+  const marker = page.getByRole('button', { name: 'View comments on Verify' });
+  await marker.click();
+  const history = page.getByRole('dialog', { name: 'Element comments' });
+  await expect(history.getByRole('listitem')).toHaveText(['What happens if verification times out?']);
+  await page.keyboard.press('Escape');
+  await expect(history).toHaveCount(0);
 
   await mode.click();
   await expect(mode).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByTitle('Note to agent')).toBeVisible();
+});
+
+test('stored comments share a marker that follows the element through zoom and reload', async ({ page, rest, canvasId }) => {
+  await seed(rest, canvasId, [box('verify', 0, 'Verify')]);
+  const notes = `/api/canvases/${canvasId}/notes`;
+  await rest.post(notes, { text: 'Board-wide note' });
+  await rest.post(notes, { text: 'First comment', elementId: 'verify' });
+  await openViewer(page, canvasId);
+
+  const marker = page.getByRole('button', { name: 'View comments on Verify' });
+  await expect(marker).toBeVisible();
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await expect.poll(async () => {
+    const corner = await toViewport(page, 200, 80);
+    const badge = (await marker.boundingBox())!;
+    return Math.hypot(badge.x + badge.width / 2 - corner.x, badge.y + badge.height / 2 - corner.y);
+  }).toBeLessThan(2);
+
+  await marker.click();
+  const history = page.getByRole('dialog', { name: 'Element comments' });
+  await rest.post(notes, { text: 'Second comment', elementId: 'verify' });
+  await expect(history.getByRole('listitem')).toHaveText(['First comment', 'Second comment']);
+  await page.reload();
+  await marker.click();
+  await expect(history.getByRole('listitem')).toHaveText(['First comment', 'Second comment']);
 });
 
 test.describe('touch comment mode', () => {

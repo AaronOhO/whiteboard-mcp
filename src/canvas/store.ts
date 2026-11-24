@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync,
 import { join } from 'node:path';
 import {
   CANVAS_ID_PATTERN,
+  MAX_CANVAS_NOTES,
   incomingWins,
   type Actor,
   type ApplyResponse,
@@ -165,7 +166,7 @@ export class CanvasStore {
     this.flushMs = opts.flushMs ?? 300;
     this.tombstoneTtlMs = opts.tombstoneTtlMs ?? 24 * 60 * 60 * 1000;
     this.changeLogLimit = opts.changeLogLimit ?? 5000;
-    this.maxNotes = opts.maxNotes ?? 200;
+    this.maxNotes = opts.maxNotes ?? MAX_CANVAS_NOTES;
     this.maxFilesBytes = opts.maxFilesBytes ?? 25 * 1024 * 1024;
     this.now = opts.now ?? Date.now;
     this.onError = opts.onError ?? (() => {});

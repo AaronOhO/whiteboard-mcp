@@ -37,6 +37,8 @@ export interface CanvasNote {
   target?: { id: string; type?: string; label?: string };
 }
 
+export const MAX_CANVAS_NOTES = 200;
+
 /** Who a board belongs to: the workspace folder ("space") and the chat that created it. */
 export interface CanvasMeta {
   title?: string;

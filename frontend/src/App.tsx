@@ -1,7 +1,8 @@
 import { Excalidraw, Footer, MainMenu, WelcomeScreen, useDevice } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI, UIOptions } from '@excalidraw/excalidraw/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ThemeChoice } from '../../src/shared/protocol';
+import type { CanvasNote, ThemeChoice } from '../../src/shared/protocol';
+import { CommentMarkers } from './CommentMarkers';
 import { Comments, CommentToggle } from './Comments';
 import { readConfig, storage, type ThemePreference } from './config';
 import type { LinkStatus } from './connection';
@@ -48,6 +49,7 @@ export function App() {
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [commentMode, setCommentMode] = useState(false);
+  const [notes, setNotes] = useState<readonly CanvasNote[]>([]);
   const root = useRef<HTMLDivElement>(null);
   const toggleCommentMode = useCallback(() => setCommentMode((on) => !on), []);
   const sendNote = useCallback((text: string, elementId?: string) => live.current?.sendNote(text, elementId) ?? false, []);
@@ -71,6 +73,7 @@ export function App() {
       viewers: setViewers,
       agentDrew: follower.push,
       title: (t) => setTitle(t === config.canvasId ? '' : t),
+      notes: setNotes,
       prefs: (p) => setThemeChoice(p.theme),
       dark: () => themeRef.current === 'dark',
       fellBack: () => void leaveDeadProxy(config.directPage),
@@ -179,6 +182,7 @@ export function App() {
           {pill}
           {saving && <SaveForm initialName={title} onSave={save} onClose={closeSave} />}
         </Chrome>
+        {api && <CommentMarkers api={api} notes={notes} />}
         {commentMode && api && <Comments api={api} root={root} onSend={sendNote} onToggle={toggleCommentMode} />}
       </Excalidraw>
     </div>

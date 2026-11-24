@@ -1,7 +1,7 @@
 import { CaptureUpdateAction, FONT_FAMILY, restoreElements } from '@excalidraw/excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { BinaryFileData, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
-import type { Actor, BinaryFile, CanvasSnapshot, ExElement, SavedSummary, ServerMessage, ViewerPrefs, ViewerRequestType } from '../../src/shared/protocol';
+import { MAX_CANVAS_NOTES, type Actor, type BinaryFile, type CanvasNote, type CanvasSnapshot, type ExElement, type SavedSummary, type ServerMessage, type ViewerPrefs, type ViewerRequestType } from '../../src/shared/protocol';
 import { connect, type LinkStatus } from './connection';
 import { pulseHighlight } from './highlight';
 import { handleRequest, type RequestContext } from './requests';
@@ -14,6 +14,7 @@ export interface LiveEvents {
   agentDrew(ids: string[]): void;
   /** The board's title from the latest snapshot (its id when untitled). */
   title(title: string): void;
+  notes(notes: readonly CanvasNote[]): void;
   /** The user's viewer settings, on connect and when another viewer changes them. */
   prefs(prefs: ViewerPrefs): void;
   dark(): boolean;
@@ -70,6 +71,7 @@ export function startLive(api: ExcalidrawImperativeAPI, wsUrls: string[], ev: Li
   let firstSnapshot = true;
   let stopped = false;
   let queue: Promise<void> = Promise.resolve();
+  let notes: readonly CanvasNote[] = [];
   let cancelHighlight: (() => void) | undefined;
   let pendingSave: { resolve(saved: SavedSummary): void; reject(err: Error): void; timer: ReturnType<typeof setTimeout> } | undefined;
 
@@ -114,6 +116,8 @@ export function startLive(api: ExcalidrawImperativeAPI, wsUrls: string[], ev: Li
     if (replaced.size) commit(elements, replaced);
     ev.viewers(canvas.viewers);
     ev.title(canvas.title);
+    notes = canvas.notes;
+    ev.notes(notes);
     synced = true;
     sendVisible();
     throttle.flush();
@@ -163,7 +167,7 @@ export function startLive(api: ExcalidrawImperativeAPI, wsUrls: string[], ev: Li
   };
 
   // Messages are applied strictly in arrival order, even when a step awaits fonts or a lazy chunk.
-  const enqueue = (task: () => Promise<void>) => {
+  const enqueue = (task: () => void | Promise<void>) => {
     queue = queue
       .then(() => (stopped ? undefined : task()))
       .catch((err: unknown) => console.error('[whiteboard-mcp]', err));
@@ -176,6 +180,12 @@ export function startLive(api: ExcalidrawImperativeAPI, wsUrls: string[], ev: Li
         return enqueue(() => applySnapshot(msg.canvas));
       case 'elements':
         return enqueue(() => applyRemote(msg.elements, msg.files, msg.actor));
+      case 'note':
+        return enqueue(() => {
+          if (notes.some((note) => note.id === msg.note.id)) return;
+          notes = [...notes, msg.note].slice(-MAX_CANVAS_NOTES);
+          ev.notes(notes);
+        });
       case 'request':
         return enqueue(() => respond(msg.reqId, msg.type, msg.payload));
       case 'viewers':

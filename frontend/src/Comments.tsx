@@ -2,10 +2,9 @@ import { CaptureUpdateAction, getCommonBounds, useDevice, viewportCoordsToSceneC
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { Icon } from './Icon';
+import { COMMENT_ICON, Icon } from './Icon';
 import { NoteForm } from './NoteForm';
 
-const COMMENT_ICON = 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM8 8h8m-8 4h5';
 const TAP_DISTANCE = 5;
 
 export function CommentToggle({ active, onToggle, mobile = false }: { active: boolean; onToggle(): void; mobile?: boolean }) {

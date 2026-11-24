@@ -151,6 +151,57 @@ html[data-theme='dark'] {
   background: var(--island-bg-color);
   box-shadow: var(--shadow-island);
 }
+.xl-comment-badge {
+  position: fixed;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 1px solid #a36408;
+  border-radius: 50%;
+  background: #ffd84d;
+  color: #4b3100;
+  box-shadow: 0 1px 4px #0003;
+  cursor: pointer;
+}
+.xl-comment-badge:hover,
+.xl-comment-badge[aria-expanded='true'] {
+  background: #ffea84;
+}
+.xl-comment-badge:focus-visible {
+  outline: 2px solid var(--color-primary, #6965db);
+  outline-offset: 2px;
+}
+.xl-comment-history {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: 10px;
+  background: var(--island-bg-color, #fff);
+  box-shadow: var(--shadow-island, 0 2px 10px #0003);
+}
+.xl-comment-history header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.xl-comment-history ol {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.xl-comment-history li {
+  padding: 8px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.xl-comment-history li + li {
+  border-top: 1px solid var(--default-border-color, #ddd);
+}
 
 .xl-note {
   position: absolute;
