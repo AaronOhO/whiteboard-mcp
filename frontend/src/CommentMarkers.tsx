@@ -1,4 +1,5 @@
 import { getCommonBounds, sceneCoordsToViewportCoords } from '@excalidraw/excalidraw';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CanvasNote } from '../../src/shared/protocol';
@@ -12,6 +13,23 @@ interface Marker {
   id: string;
   x: number;
   y: number;
+  label?: string;
+}
+
+function commentCorner(element: ExcalidrawElement) {
+  const [left, top, right, bottom] = getCommonBounds([element]);
+  if ((element.type !== 'diamond' && element.type !== 'ellipse') || !element.width || !element.height) {
+    return { sceneX: right, sceneY: bottom, offset: 0 };
+  }
+  // Intersect the lower-right diagonal with the actual outline, including rotated shapes.
+  const dx = (right - left) / 2;
+  const dy = (bottom - top) / 2;
+  const cos = Math.cos(element.angle);
+  const sin = Math.sin(element.angle);
+  const x = (dx * cos + dy * sin) / (element.width / 2);
+  const y = (dy * cos - dx * sin) / (element.height / 2);
+  const distance = element.type === 'diamond' ? Math.abs(x) + Math.abs(y) : Math.hypot(x, y);
+  return { sceneX: left + dx + dx / distance, sceneY: top + dy + dy / distance, offset: 7 };
 }
 
 export function CommentMarkers({ api, notes }: { api: ExcalidrawImperativeAPI; notes: readonly CanvasNote[] }) {
@@ -40,17 +58,24 @@ export function CommentMarkers({ api, notes }: { api: ExcalidrawImperativeAPI; n
       const state = api.getAppState();
       const right = state.offsetLeft + state.width;
       const bottom = state.offsetTop + state.height;
+      const labels = new Map<string, string>();
+      const targets = api.getSceneElements().filter((element) => {
+        if (element.type === 'text' && element.containerId && byElement.has(element.containerId)) {
+          labels.set(element.containerId, element.originalText);
+        }
+        return byElement.has(element.id);
+      });
       const next: Marker[] = [];
-      for (const element of api.getSceneElements()) {
-        if (!byElement.has(element.id)) continue;
-        const [, , sceneX, sceneY] = getCommonBounds([element]);
+      for (const element of targets) {
+        const { sceneX, sceneY, offset } = commentCorner(element);
         const { x, y } = sceneCoordsToViewportCoords({ sceneX, sceneY }, state);
         if (x < state.offsetLeft || x > right || y < state.offsetTop || y > bottom) continue;
-        next.push({ id: element.id, x: Math.min(x, right - BADGE_RADIUS - 2), y: Math.min(y, bottom - BADGE_RADIUS - 2) });
+        const label = (element.type === 'text' ? element.originalText : labels.get(element.id))?.replace(/\s+/g, ' ').trim();
+        next.push({ id: element.id, label, x: Math.min(x + offset, right - BADGE_RADIUS - 2), y: Math.min(y + offset, bottom - BADGE_RADIUS - 2) });
       }
       setMarkers((current) => current.length === next.length && current.every((marker, i) => {
         const updated = next[i]!;
-        return marker.id === updated.id && marker.x === updated.x && marker.y === updated.y;
+        return marker.id === updated.id && marker.x === updated.x && marker.y === updated.y && marker.label === updated.label;
       }) ? current : next);
     };
     update();
@@ -98,10 +123,8 @@ export function CommentMarkers({ api, notes }: { api: ExcalidrawImperativeAPI; n
 
   return (
     <>
-      {markers.map(({ id, x, y }) => {
-        const last = byElement.get(id)?.at(-1);
-        if (!last) return null;
-        const label = last.target?.label?.replace(/\s+/g, ' ');
+      {markers.map(({ id, x, y, label }) => {
+        if (!byElement.has(id)) return null;
         return (
           <button key={id} type="button" className="xl-comment-badge" style={{ left: x, top: y }}
             ref={openId === id ? anchor : undefined} title="View comments" aria-label={label ? `View comments on ${label}` : 'View comments'}

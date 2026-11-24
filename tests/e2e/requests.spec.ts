@@ -115,7 +115,7 @@ test('a note typed in the viewer reaches the agent', async ({ page, rest, canvas
 });
 
 test('comment mode selects a node without editing it and sends its identity with the comment', async ({ page, rest, canvasId }) => {
-  await seed(rest, canvasId, [box('account', 0, 'Account'), box('verify', 350, 'Verify')]);
+  await seed(rest, canvasId, [box('account', 0, 'Account'), { ...box('verify', 350, 'Verify'), type: 'diamond' }]);
   await openViewer(page, canvasId);
   await expect.poll(async () => (await sceneElements(page)).length).toBe(4);
   const board = await rest.get(api.canvas(canvasId));
@@ -141,10 +141,15 @@ test('comment mode selects a node without editing it and sends its identity with
 
   await expect.poll(async () => (await rest.get(api.changes(canvasId, board.rev))).notes).toMatchObject([{
     text: 'What happens if verification times out?',
-    target: { id: 'verify', type: 'rectangle', label: 'Verify' },
+    target: { id: 'verify', type: 'diamond', label: 'Verify' },
   }]);
   expect((await rest.get(api.canvas(canvasId))).elements).toEqual(board.elements);
   const marker = page.getByRole('button', { name: 'View comments on Verify' });
+  await expect(marker).toBeVisible();
+  const edge = await toViewport(page, 500, 60);
+  const badge = (await marker.boundingBox())!;
+  const offset = Math.hypot(badge.x + badge.width / 2 - edge.x, badge.y + badge.height / 2 - edge.y);
+  expect(offset).toBeLessThan(13);
   await marker.click();
   const history = page.getByRole('dialog', { name: 'Element comments' });
   await expect(history.getByRole('listitem')).toHaveText(['What happens if verification times out?']);
@@ -178,6 +183,11 @@ test('stored comments share a marker that follows the element through zoom and r
   await expect(history.getByRole('listitem')).toHaveText(['First comment', 'Second comment']);
   await page.reload();
   await marker.click();
+  await expect(history.getByRole('listitem')).toHaveText(['First comment', 'Second comment']);
+  const { buildElements } = await shared();
+  const board = await rest.get(api.canvas(canvasId));
+  await rest.post(api.elements(canvasId), { elements: buildElements([{ id: 'verify', label: 'Verify account' }], board.elements).elements });
+  await expect(page.getByRole('button', { name: 'View comments on Verify account' })).toBeVisible();
   await expect(history.getByRole('listitem')).toHaveText(['First comment', 'Second comment']);
 });
 
