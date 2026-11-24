@@ -195,9 +195,20 @@ html[data-theme='dark'] {
   list-style: none;
 }
 .xl-comment-history li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   padding: 8px 0;
+}
+.xl-comment-history li span {
+  min-width: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.xl-comment-delete:hover,
+.xl-comment-delete:focus-visible {
+  color: var(--color-danger, #c92a2a);
 }
 .xl-comment-history li + li {
   border-top: 1px solid var(--default-border-color, #ddd);

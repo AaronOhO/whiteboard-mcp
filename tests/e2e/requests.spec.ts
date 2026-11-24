@@ -191,6 +191,35 @@ test('stored comments share a marker that follows the element through zoom and r
   await expect(history.getByRole('listitem')).toHaveText(['First comment', 'Second comment']);
 });
 
+test('deleting a comment updates both viewers and hides the marker after the last deletion', async ({ page, context, rest, canvasId }) => {
+  await seed(rest, canvasId, [box('verify', 0, 'Verify')]);
+  const notes = `/api/canvases/${canvasId}/notes`;
+  await rest.post(notes, { text: 'Board-wide note' });
+  await rest.post(notes, { text: 'First comment', elementId: 'verify' });
+  await rest.post(notes, { text: 'Second comment', elementId: 'verify' });
+  const otherPage = await context.newPage();
+  await Promise.all([openViewer(page, canvasId), openViewer(otherPage, canvasId)]);
+
+  const marker = page.getByRole('button', { name: 'View comments on Verify' });
+  const otherMarker = otherPage.getByRole('button', { name: 'View comments on Verify' });
+  const history = page.getByRole('dialog', { name: 'Element comments' });
+  const otherHistory = otherPage.getByRole('dialog', { name: 'Element comments' });
+  await marker.click();
+  await otherMarker.click();
+  await history.getByRole('listitem').filter({ hasText: 'First comment' }).getByRole('button', { name: 'Delete comment' }).click();
+  await expect(history.getByRole('listitem')).toHaveText(['Second comment']);
+  await expect(otherHistory.getByRole('listitem')).toHaveText(['Second comment']);
+
+  await otherHistory.getByRole('button', { name: 'Delete comment' }).click();
+  await expect(marker).toHaveCount(0);
+  await expect(otherMarker).toHaveCount(0);
+  await expect(history).toHaveCount(0);
+  await page.reload();
+  await expect.poll(async () => (await sceneElements(page)).map((el) => el.type)).toContain('rectangle');
+  await expect(marker).toHaveCount(0);
+  expect((await rest.get(api.canvas(canvasId))).notes).toMatchObject([{ text: 'Board-wide note' }]);
+});
+
 test.describe('touch comment mode', () => {
   test.use({ hasTouch: true, viewport: { width: 400, height: 760 } });
 

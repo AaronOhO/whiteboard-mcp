@@ -166,6 +166,7 @@ export type ServerMessage =
   | { t: 'prefs'; prefs: ViewerPrefs }
   | { t: 'elements'; rev: number; actor: Actor; elements: ExElement[]; files?: BinaryFile[] }
   | { t: 'note'; note: CanvasNote }
+  | { t: 'comment-deleted'; noteId: string }
   | { t: 'request'; reqId: string; type: ViewerRequestType; payload: unknown }
   | { t: 'viewers'; count: number }
   /** Answers this viewer's own `save`. */
@@ -178,6 +179,7 @@ export type ClientMessage =
   | { t: 'elements'; elements: ExElement[]; files?: BinaryFile[]; actor?: Actor }
   | { t: 'response'; reqId: string; ok: boolean; result?: unknown; error?: string }
   | { t: 'note'; text: string; elementId?: string }
+  | { t: 'delete-comment'; noteId: string }
   /** Saves the board to the library; the name defaults to the board's title. */
   | { t: 'save'; name?: string }
   | { t: 'visible'; visible: boolean }

@@ -8,6 +8,7 @@ import { COMMENT_ICON, Icon } from './Icon';
 const BADGE_RADIUS = 13;
 const GAP = 8;
 const CLOSE_ICON = 'M6 6l12 12M6 18L18 6';
+const DELETE_ICON = 'M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6m4-6v6';
 
 interface Marker {
   id: string;
@@ -32,7 +33,13 @@ function commentCorner(element: ExcalidrawElement) {
   return { sceneX: left + dx + dx / distance, sceneY: top + dy + dy / distance, offset: 7 };
 }
 
-export function CommentMarkers({ api, notes }: { api: ExcalidrawImperativeAPI; notes: readonly CanvasNote[] }) {
+interface Props {
+  api: ExcalidrawImperativeAPI;
+  notes: readonly CanvasNote[];
+  onDelete(noteId: string): boolean;
+}
+
+export function CommentMarkers({ api, notes, onDelete }: Props) {
   const byElement = useMemo(() => {
     const groups = new Map<string, CanvasNote[]>();
     for (const note of notes) {
@@ -121,6 +128,14 @@ export function CommentMarkers({ api, notes }: { api: ExcalidrawImperativeAPI; n
   const above = active ? active.y - panelGap - GAP : 0;
   const openAbove = below < 180 && above > below;
 
+  const deleteComment = (id: string) => {
+    if (!onDelete(id)) {
+      api.setToast({ message: 'Offline — comment not deleted', duration: 2500 });
+      return;
+    }
+    panel.current?.focus();
+  };
+
   return (
     <>
       {markers.map(({ id, x, y, label }) => {
@@ -149,7 +164,16 @@ export function CommentMarkers({ api, notes }: { api: ExcalidrawImperativeAPI; n
               anchor.current?.focus();
             }}><Icon d={CLOSE_ICON} /></button>
           </header>
-          <ol>{comments.map((note) => <li key={note.id}>{note.text}</li>)}</ol>
+          <ol>
+            {comments.map((note) => (
+              <li key={note.id}>
+                <span>{note.text}</span>
+                <button type="button" className="xl-btn xl-comment-delete" aria-label="Delete comment" title="Delete comment" onClick={() => deleteComment(note.id)}>
+                  <Icon d={DELETE_ICON} />
+                </button>
+              </li>
+            ))}
+          </ol>
         </aside>
       )}
     </>

@@ -53,6 +53,7 @@ export function App() {
   const root = useRef<HTMLDivElement>(null);
   const toggleCommentMode = useCallback(() => setCommentMode((on) => !on), []);
   const sendNote = useCallback((text: string, elementId?: string) => live.current?.sendNote(text, elementId) ?? false, []);
+  const deleteComment = useCallback((noteId: string) => live.current?.deleteComment(noteId) ?? false, []);
   const closeSave = useCallback(() => setSaving(false), []);
   const live = useRef<Live | null>(null);
   const themeRef = useRef(theme);
@@ -182,7 +183,7 @@ export function App() {
           {pill}
           {saving && <SaveForm initialName={title} onSave={save} onClose={closeSave} />}
         </Chrome>
-        {api && <CommentMarkers api={api} notes={notes} />}
+        {api && <CommentMarkers api={api} notes={notes} onDelete={deleteComment} />}
         {commentMode && api && <Comments api={api} root={root} onSend={sendNote} onToggle={toggleCommentMode} />}
       </Excalidraw>
     </div>

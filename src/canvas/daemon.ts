@@ -643,6 +643,11 @@ export async function startDaemon(opts: DaemonOptions = {}): Promise<Daemon> {
           broadcast(viewer.canvasId, { t: 'note', note: store.addNote(viewer.canvasId, msg.text, msg.elementId) });
           return;
         }
+        case 'delete-comment': {
+          const noteId = store.deleteComment(viewer.canvasId, msg.noteId);
+          broadcast(viewer.canvasId, { t: 'comment-deleted', noteId });
+          return;
+        }
         case 'save': {
           // The viewer waits for this answer, so every failure gets one too.
           try {

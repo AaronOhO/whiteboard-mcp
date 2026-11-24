@@ -24,6 +24,7 @@ export interface LiveEvents {
 
 export interface Live {
   sendNote(text: string, elementId?: string): boolean;
+  deleteComment(noteId: string): boolean;
   /** Saves the board, including edits not sent yet, to the library. */
   save(name: string): Promise<SavedSummary>;
   /** Saves the user's viewer settings for every viewer; false when offline. */
@@ -186,6 +187,11 @@ export function startLive(api: ExcalidrawImperativeAPI, wsUrls: string[], ev: Li
           notes = [...notes, msg.note].slice(-MAX_CANVAS_NOTES);
           ev.notes(notes);
         });
+      case 'comment-deleted':
+        return enqueue(() => {
+          notes = notes.filter((note) => note.id !== msg.noteId);
+          ev.notes(notes);
+        });
       case 'request':
         return enqueue(() => respond(msg.reqId, msg.type, msg.payload));
       case 'viewers':
@@ -229,6 +235,7 @@ export function startLive(api: ExcalidrawImperativeAPI, wsUrls: string[], ev: Li
       }
       return conn.send({ t: 'note', text, ...(elementId ? { elementId } : {}) });
     },
+    deleteComment: (noteId) => synced && conn.send({ t: 'delete-comment', noteId }),
     setPrefs: (prefs) => conn.send({ t: 'prefs', prefs }),
     save(name) {
       if (pendingSave) return Promise.reject(new Error('already saving'));

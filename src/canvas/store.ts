@@ -363,6 +363,20 @@ export class CanvasStore {
     return note;
   }
 
+  deleteComment(id: string, noteId: unknown): string {
+    if (!isId(noteId)) throw new ValidationError('noteId must be a valid note id');
+    const c = this.get(id);
+    const index = c.notes.findIndex((note) => note.id === noteId);
+    const note = c.notes[index];
+    // Repeated deletes (including from another viewer) leave the same board state.
+    if (!note) return noteId;
+    if (!note.target) throw new ValidationError('only element comments can be deleted');
+    c.notes.splice(index, 1);
+    c.rev++;
+    this.markDirty(c);
+    return noteId;
+  }
+
   remove(id: string): boolean {
     if (!CANVAS_ID_PATTERN.test(id)) return false;
     const existed = this.canvases.delete(id);

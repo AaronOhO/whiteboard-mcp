@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { removeTempDir } from '../helpers/cleanup.js';
 import WebSocket from 'ws';
 import { startDaemon, type Daemon, type DaemonOptions } from '../../src/canvas/daemon.js';
-import type { ExElement, ServerMessage } from '../../src/shared/protocol.js';
+import type { CanvasNote, ExElement, ServerMessage } from '../../src/shared/protocol.js';
 
 let root: string;
 let frontendDir: string;
@@ -569,6 +569,27 @@ describe('websocket hub', () => {
     expect((await b.take('note')).note.text).toBe('look here');
     expect((await apiJson(d, '/api/canvases/c1/changes?since=0')).body.notes).toHaveLength(1);
     expect(a.ws.readyState).toBe(WebSocket.OPEN);
+  });
+
+  it('persists comment deletion across restarts and leaves board-wide notes intact', async () => {
+    const d = await start();
+    const a = await viewer(d, 'c1');
+    const url = '/api/canvases/c1/notes';
+    const general = (await apiJson<CanvasNote>(d, url, { body: { text: 'Board-wide note' } })).body;
+    const comment = (await apiJson<CanvasNote>(d, url, { body: { text: 'Element comment', elementId: 'target' } })).body;
+    a.send({ t: 'delete-comment', noteId: general.id });
+    expect(await a.take('error')).toMatchObject({ message: 'only element comments can be deleted' });
+
+    a.send({ t: 'delete-comment', noteId: comment.id });
+    expect(await a.take('comment-deleted')).toEqual({ t: 'comment-deleted', noteId: comment.id });
+    a.send({ t: 'delete-comment', noteId: comment.id });
+    expect(await a.take('comment-deleted')).toEqual({ t: 'comment-deleted', noteId: comment.id });
+    await d.close();
+
+    const again = await start();
+    const { canvas } = await (await viewer(again, 'c1')).take('snapshot');
+    expect(canvas.rev).toBe(comment.rev + 1);
+    expect(canvas.notes).toEqual([general]);
   });
 });
 
